@@ -10,7 +10,25 @@ type positionsPair struct {
 }
 
 func (m MyersDiffer) ComputeDiff(previous, current Document) ([]Diff, error) {
-	return nil, nil
+	traces, err := m.shortestEdition(previous, current)
+	if err != nil {
+		return nil, err
+	}
+
+	path := m.backtrack(previous, current, traces)
+	diffs := make([]Diff, len(path))
+	for i, pos := range path {
+		writeIndex := len(path) - i - 1
+		if pos.x1 == pos.x2 {
+			diffs[writeIndex] = NewDiff(Line{lineNumber: -1}, current[pos.y1], ADDED)
+		} else if pos.y1 == pos.y2 {
+			diffs[writeIndex] = NewDiff(previous[pos.x1], Line{lineNumber: -1}, DELETED)
+		} else {
+			diffs[writeIndex] = NewDiff(previous[pos.x1], current[pos.y1], UNCHANGED)
+		}
+	}
+
+	return diffs, nil
 }
 
 func (m MyersDiffer) shortestEdition(previous, current Document) ([][]int, error) {

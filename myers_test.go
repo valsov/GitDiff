@@ -4,45 +4,64 @@ import "testing"
 
 func TestComputeDiff(t *testing.T) {
 	previousText := `A
-	B
-	C
-	A
-	B
-	B
-	A`
+B
+C
+A
+B
+B
+A`
 	previous := NewDocument(previousText)
 
 	currentText := `C
-	B
-	A
-	B
-	A
-	C`
+B
+A
+B
+A
+C`
 	current := NewDocument(currentText)
 
 	alg := MyersDiffer{}
-	_, err := alg.ComputeDiff(previous, current) // todo
+	diffs, err := alg.ComputeDiff(previous, current)
 	if err != nil {
 		t.Fatalf("got error: %v", err)
+	}
+	if len(diffs) != 9 {
+		t.Fatalf("wrong diffs element count. expected=%d, got=%d", 9, len(diffs))
+	}
+
+	for i, diffType := range []DiffType{
+		DELETED,
+		DELETED,
+		UNCHANGED,
+		ADDED,
+		UNCHANGED,
+		UNCHANGED,
+		DELETED,
+		UNCHANGED,
+		ADDED,
+	} {
+		if diffs[i].Type != diffType {
+			t.Fatalf("wrong diffs type at index %d. expected=%s, got=%s", i, diffType, diffs[i].Type)
+		}
 	}
 }
 
 func TestShortestEdition(t *testing.T) {
 	previousText := `A
-	B
-	C
-	A
-	B
-	B
-	A`
+B
+C
+A
+B
+B
+A`
 	previous := NewDocument(previousText)
 
 	currentText := `C
-	B
-	A
-	B
-	A
-	C`
+B
+A
+B
+A
+C`
 	current := NewDocument(currentText)
 
 	alg := MyersDiffer{}
@@ -58,20 +77,20 @@ func TestShortestEdition(t *testing.T) {
 
 func TestBacktrack(t *testing.T) {
 	previousText := `A
-	B
-	C
-	A
-	B
-	B
-	A`
+B
+C
+A
+B
+B
+A`
 	previous := NewDocument(previousText)
 
 	currentText := `C
-	B
-	A
-	B
-	A
-	C`
+B
+A
+B
+A
+C`
 	current := NewDocument(currentText)
 
 	alg := MyersDiffer{}

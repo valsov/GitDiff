@@ -2,21 +2,44 @@ package gitdiff
 
 import "strings"
 
+const (
+	UNCHANGED DiffType = "unchanged"
+	ADDED     DiffType = "added"
+	DELETED   DiffType = "deleted"
+)
+
+type DiffType string
+
 type Differ interface {
 	ComputeDiff(previous, current Document) ([]Diff, error)
 }
 
 type Diff struct {
-	OldLineNumber, NewLineNumber int
-	Text                         string
+	Old, New Line
+	Type     DiffType
 }
+
+func NewDiff(old, new Line, dType DiffType) Diff {
+	return Diff{
+		Old:  old,
+		New:  new,
+		Type: dType,
+	}
+}
+
+func (d Diff) GetText() string {
+	if d.New.lineNumber != -1 {
+		return d.New.text
+	}
+	return d.Old.text
+}
+
+type Document []Line
 
 type Line struct {
 	text       string
 	lineNumber int
 }
-
-type Document []Line
 
 func NewDocument(text string) Document {
 	d := Document{}
