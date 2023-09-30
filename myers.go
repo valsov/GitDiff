@@ -2,14 +2,14 @@ package gitdiff
 
 import "errors"
 
-type MyersDiffer struct{}
+type myersDiffer struct{}
 
 type positionsPair struct {
 	x1, y1 int
 	x2, y2 int
 }
 
-func (m MyersDiffer) ComputeDiff(previous, current Document) ([]Diff, error) {
+func (m myersDiffer) ComputeDiff(previous, current Document) ([]Diff, error) {
 	traces, err := m.shortestEdition(previous, current)
 	if err != nil {
 		return nil, err
@@ -31,7 +31,7 @@ func (m MyersDiffer) ComputeDiff(previous, current Document) ([]Diff, error) {
 	return diffs, nil
 }
 
-func (m MyersDiffer) shortestEdition(previous, current Document) ([][]int, error) {
+func (m myersDiffer) shortestEdition(previous, current Document) ([][]int, error) {
 	maxSize := getMaxSize(previous, current)
 	if maxSize == 0 {
 		return [][]int{}, nil
@@ -72,7 +72,7 @@ func (m MyersDiffer) shortestEdition(previous, current Document) ([][]int, error
 	return nil, errors.New("failed to find the end")
 }
 
-func (m MyersDiffer) backtrack(previous, current Document, shortestEdit [][]int) []positionsPair {
+func (m myersDiffer) backtrack(previous, current Document, shortestEdit [][]int) []positionsPair {
 	path := []positionsPair{}
 	x, y := len(previous), len(current)
 	for d := 0; d < len(shortestEdit); d++ {

@@ -20,7 +20,7 @@ A
 C`
 	current := NewDocument(currentText)
 
-	alg := MyersDiffer{}
+	alg := myersDiffer{}
 	diffs, err := alg.ComputeDiff(previous, current)
 	if err != nil {
 		t.Fatalf("got error: %v", err)
@@ -64,7 +64,7 @@ A
 C`
 	current := NewDocument(currentText)
 
-	alg := MyersDiffer{}
+	alg := myersDiffer{}
 	traces, err := alg.shortestEdition(previous, current)
 
 	if err != nil {
@@ -93,7 +93,7 @@ A
 C`
 	current := NewDocument(currentText)
 
-	alg := MyersDiffer{}
+	alg := myersDiffer{}
 	traces, err := alg.shortestEdition(previous, current)
 	if err != nil {
 		t.Fatalf("got error: %v", err)
