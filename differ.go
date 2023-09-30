@@ -1,17 +1,36 @@
 package gitdiff
 
-import "strings"
+import (
+	"errors"
+	"strings"
+)
 
 const (
+	MYERS_DIFF    DiffAlgorithm = "myers"
+	PATIENCE_DIFF DiffAlgorithm = "patience"
+
 	UNCHANGED DiffType = "unchanged"
 	ADDED     DiffType = "added"
 	DELETED   DiffType = "deleted"
 )
 
+type DiffAlgorithm string
+
 type DiffType string
 
 type Differ interface {
 	ComputeDiff(previous, current Document) ([]Diff, error)
+}
+
+func NewDiffProducer(algorithm DiffAlgorithm) (Differ, error) {
+	switch algorithm {
+	case MYERS_DIFF:
+		return myersDiffer{}, nil
+	case PATIENCE_DIFF:
+		return patienceDiffer{}, nil
+	default:
+		return nil, errors.New("unknown diff algorithm")
+	}
 }
 
 type Diff struct {
