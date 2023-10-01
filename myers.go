@@ -1,6 +1,10 @@
 package gitdiff
 
-import "errors"
+import (
+	"errors"
+	"math"
+	"slices"
+)
 
 type myersDiffer struct{}
 
@@ -9,41 +13,81 @@ type positionsPair struct {
 	x2, y2 int
 }
 
-func (m myersDiffer) ComputeDiff(previous, current Document) ([]Diff, error) {
+func (m myersDiffer) ComputeDiff(previous, current Document, contextLinesCount int) ([]Diff, error) {
 	traces, err := m.shortestEdition(previous, current)
 	if err != nil {
 		return nil, err
 	}
 
 	path := m.backtrack(previous, current, traces)
-	diffs := make([]Diff, len(path))
-	for i, pos := range path {
-		writeIndex := len(path) - i - 1
-		if pos.x1 == pos.x2 {
-			diffs[writeIndex] = NewDiff(Line{lineNumber: -1}, current[pos.y1], ADDED)
-		} else if pos.y1 == pos.y2 {
-			diffs[writeIndex] = NewDiff(previous[pos.x1], Line{lineNumber: -1}, DELETED)
+	slices.Reverse(path)
+
+	// Build diffs slice
+	var (
+		diffs          = []Diff{}
+		tempDiffBuffer = []Diff{}
+		ahead          = false
+		insertCount    = 0
+	)
+
+	if contextLinesCount < 0 {
+		contextLinesCount = math.MaxInt
+	}
+
+	for _, pos := range path {
+		var diff Diff
+		switch {
+		case pos.x1 == pos.x2:
+			diff = NewDiff(Line{lineNumber: -1}, current[pos.y1], ADDED)
+		case pos.y1 == pos.y2:
+			diff = NewDiff(previous[pos.x1], Line{lineNumber: -1}, DELETED)
+		default:
+			diff = NewDiff(previous[pos.x1], current[pos.y1], UNCHANGED)
+		}
+
+		if diff.Type != UNCHANGED {
+			for j := len(tempDiffBuffer) - contextLinesCount; j < len(tempDiffBuffer) && j >= 0; j++ {
+				diffs = append(diffs, tempDiffBuffer[j])
+			}
+			tempDiffBuffer = nil // Reset slice and set len to 0
+			insertCount = 0
+			ahead = true
+
+			diffs = append(diffs, diff)
+			continue
+		}
+
+		if ahead {
+			if insertCount == contextLinesCount {
+				ahead = false
+				insertCount = 0
+				tempDiffBuffer = append(tempDiffBuffer, diff)
+			} else {
+				diffs = append(diffs, diff)
+				insertCount++
+			}
 		} else {
-			diffs[writeIndex] = NewDiff(previous[pos.x1], current[pos.y1], UNCHANGED)
+			tempDiffBuffer = append(tempDiffBuffer, diff)
 		}
 	}
 
 	return diffs, nil
 }
 
+// Find shortest edition, produce a list of traces that led to the result
 func (m myersDiffer) shortestEdition(previous, current Document) ([][]int, error) {
-	maxSize := getMaxSize(previous, current)
-	if maxSize == 0 {
+	maxDepth := max(len(previous), len(current))
+	if maxDepth == 0 {
 		return [][]int{}, nil
 	}
 
-	arr := make([]int, maxSize*2+1)
+	arr := make([]int, maxDepth*2+1)
 	trace := [][]int{}
-	for d := 0; d <= maxSize; d++ {
-		for k := -d; k <= d; k += 2 {
+	for depth := 0; depth <= maxDepth; depth++ {
+		for k := -depth; k <= depth; k += 2 {
 			// Move by one
 			var x int
-			if k == -d || (k != d && getAtIndex(arr, k-1) < getAtIndex(arr, k+1)) {
+			if k == -depth || (k != depth && getAtIndex(arr, k-1) < getAtIndex(arr, k+1)) {
 				x = getAtIndex(arr, k+1)
 			} else {
 				x = getAtIndex(arr, k-1) + 1
@@ -69,19 +113,20 @@ func (m myersDiffer) shortestEdition(previous, current Document) ([][]int, error
 		trace = append(trace, newTrace)
 	}
 
-	return nil, errors.New("failed to find the end")
+	return nil, errors.New("failed to find a path")
 }
 
+// Find shortest path by backtracking traces
 func (m myersDiffer) backtrack(previous, current Document, shortestEdit [][]int) []positionsPair {
 	path := []positionsPair{}
 	x, y := len(previous), len(current)
-	for d := 0; d < len(shortestEdit); d++ {
-		reverseD := len(shortestEdit) - 1 - d // Start from the end
+	for depth := 0; depth < len(shortestEdit); depth++ {
+		reverseD := len(shortestEdit) - 1 - depth // Start from the end
 		arr := shortestEdit[reverseD]
 		k := x - y
 
 		var previousK int
-		if k == -d || (k != d && getAtIndex(arr, k-1) < getAtIndex(arr, k+1)) {
+		if k == -depth || (k != depth && getAtIndex(arr, k-1) < getAtIndex(arr, k+1)) {
 			previousK = k + 1
 		} else {
 			previousK = k - 1
@@ -89,6 +134,7 @@ func (m myersDiffer) backtrack(previous, current Document, shortestEdit [][]int)
 
 		previousX := getAtIndex(arr, previousK)
 		previousY := previousX - previousK
+		// Handle diagonal backtracing
 		for x > previousX && y > previousY {
 			path = append(path, positionsPair{x1: x - 1, y1: y - 1, x2: x, y2: y})
 			x, y = x-1, y-1
@@ -96,6 +142,9 @@ func (m myersDiffer) backtrack(previous, current Document, shortestEdit [][]int)
 
 		if reverseD > 0 {
 			path = append(path, positionsPair{x1: previousX, y1: previousY, x2: x, y2: y})
+		} else if path[len(path)-1].x1 != 0 && path[len(path)-1].y1 != 0 {
+			// Add {0, 0, x, y} at the end if it wasn't already added
+			path = append(path, positionsPair{x1: 0, y1: 0, x2: x, y2: y})
 		}
 		x, y = previousX, previousY
 	}
@@ -103,22 +152,20 @@ func (m myersDiffer) backtrack(previous, current Document, shortestEdit [][]int)
 	return path
 }
 
-func getMaxSize(a, b Document) int {
-	return max(len(a), len(b))
-}
-
+// Utility function wrapping slice index access, allow negative numbers (starting from end)
 func getAtIndex(s []int, index int) int {
 	return s[getIndex(index, len(s))]
 }
 
+// Utility function wrapping slice index set, allow negative numbers (starting from end)
 func setAtIndex(s []int, index, value int) {
 	s[getIndex(index, len(s))] = value
 }
 
+// Get index, normal acces if positive, access from the end if negative
 func getIndex(index, length int) int {
 	if index >= 0 {
 		return index
 	}
-	// Negative index indicates to get from the end
 	return length + index
 }

@@ -2,7 +2,7 @@ package gitdiff
 
 import "testing"
 
-func TestComputeDiff(t *testing.T) {
+func TestComputeDiff(t *testing.T) { // todo: better test cases and 'contextLinesCount' tests
 	previousText := `A
 B
 C
@@ -21,7 +21,7 @@ C`
 	current := NewDocument(currentText)
 
 	alg := myersDiffer{}
-	diffs, err := alg.ComputeDiff(previous, current)
+	diffs, err := alg.ComputeDiff(previous, current, 0)
 	if err != nil {
 		t.Fatalf("got error: %v", err)
 	}

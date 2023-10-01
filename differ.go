@@ -8,7 +8,9 @@ import (
 const (
 	MYERS_DIFF    DiffAlgorithm = "myers"
 	PATIENCE_DIFF DiffAlgorithm = "patience"
+)
 
+const (
 	UNCHANGED DiffType = "unchanged"
 	ADDED     DiffType = "added"
 	DELETED   DiffType = "deleted"
@@ -19,7 +21,9 @@ type DiffAlgorithm string
 type DiffType string
 
 type Differ interface {
-	ComputeDiff(previous, current Document) ([]Diff, error)
+	// Produce a slice of Diff by comparing input documents.
+	// 'contextLinesCount' indicates the expected number of lines surrounding edits. If negative, all lines will be included.
+	ComputeDiff(previous, current Document, contextLinesCount int) ([]Diff, error)
 }
 
 func NewDiffProducer(algorithm DiffAlgorithm) (Differ, error) {
@@ -64,7 +68,7 @@ func NewDocument(text string) Document {
 	d := Document{}
 	split := strings.Split(text, "\n")
 	for i, t := range split {
-		d = append(d, Line{text: t, lineNumber: i})
+		d = append(d, Line{text: t, lineNumber: i + 1})
 	}
 	return d
 }
