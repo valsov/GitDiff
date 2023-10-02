@@ -14,6 +14,23 @@ type positionsPair struct {
 }
 
 func (m myersDiffer) ComputeDiff(previous, current Document, contextLinesCount int) ([]Diff, error) {
+	if len(previous) == 0 {
+		// All added
+		diffs := make([]Diff, len(current))
+		for i, line := range current {
+			diffs[i] = NewDiff(Line{lineNumber: -1}, line, ADDED)
+		}
+		return diffs, nil
+	}
+	if len(current) == 0 {
+		// All deleted
+		diffs := make([]Diff, len(current))
+		for i, line := range current {
+			diffs[i] = NewDiff(line, Line{lineNumber: -1}, DELETED)
+		}
+		return diffs, nil
+	}
+
 	traces, err := m.shortestEdition(previous, current)
 	if err != nil {
 		return nil, err
@@ -162,7 +179,7 @@ func setAtIndex(s []int, index, value int) {
 	s[getIndex(index, len(s))] = value
 }
 
-// Get index, normal acces if positive, access from the end if negative
+// Get index, normal access if positive, access from the end if negative
 func getIndex(index, length int) int {
 	if index >= 0 {
 		return index
