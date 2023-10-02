@@ -66,6 +66,9 @@ type Line struct {
 
 func NewDocument(text string) Document {
 	d := Document{}
+	if text == "" {
+		return d
+	}
 	split := strings.Split(text, "\n")
 	for i, t := range split {
 		d = append(d, Line{text: t, lineNumber: i + 1})

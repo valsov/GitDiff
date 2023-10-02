@@ -24,8 +24,8 @@ func (m myersDiffer) ComputeDiff(previous, current Document, contextLinesCount i
 	}
 	if len(current) == 0 {
 		// All deleted
-		diffs := make([]Diff, len(current))
-		for i, line := range current {
+		diffs := make([]Diff, len(previous))
+		for i, line := range previous {
 			diffs[i] = NewDiff(line, Line{lineNumber: -1}, DELETED)
 		}
 		return diffs, nil
@@ -63,7 +63,11 @@ func (m myersDiffer) ComputeDiff(previous, current Document, contextLinesCount i
 		}
 
 		if diff.Type != UNCHANGED {
-			for j := len(tempDiffBuffer) - contextLinesCount; j < len(tempDiffBuffer) && j >= 0; j++ {
+			j := len(tempDiffBuffer) - contextLinesCount
+			if j < 0 {
+				j = 0
+			}
+			for ; j < len(tempDiffBuffer); j++ {
 				diffs = append(diffs, tempDiffBuffer[j])
 			}
 			tempDiffBuffer = nil // Reset slice and set len to 0
