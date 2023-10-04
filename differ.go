@@ -6,8 +6,7 @@ import (
 )
 
 const (
-	MYERS_DIFF    DiffAlgorithm = "myers"
-	PATIENCE_DIFF DiffAlgorithm = "patience"
+	MYERS_DIFF DiffAlgorithm = "myers"
 )
 
 const (
@@ -30,8 +29,6 @@ func NewDiffProducer(algorithm DiffAlgorithm) (Differ, error) {
 	switch algorithm {
 	case MYERS_DIFF:
 		return myersDiffer{}, nil
-	case PATIENCE_DIFF:
-		return patienceDiffer{}, nil
 	default:
 		return nil, errors.New("unknown diff algorithm")
 	}
@@ -74,4 +71,24 @@ func NewDocument(text string) Document {
 		d = append(d, Line{text: t, lineNumber: i + 1})
 	}
 	return d
+}
+
+func handleSimpleCases(previous, current Document) ([]Diff, bool) {
+	if len(previous) == 0 {
+		// All added
+		diffs := make([]Diff, len(current))
+		for i, line := range current {
+			diffs[i] = NewDiff(Line{lineNumber: -1}, line, ADDED)
+		}
+		return diffs, true
+	}
+	if len(current) == 0 {
+		// All deleted
+		diffs := make([]Diff, len(previous))
+		for i, line := range previous {
+			diffs[i] = NewDiff(line, Line{lineNumber: -1}, DELETED)
+		}
+		return diffs, true
+	}
+	return nil, false
 }

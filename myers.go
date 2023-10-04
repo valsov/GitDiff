@@ -14,20 +14,7 @@ type positionsPair struct {
 }
 
 func (m myersDiffer) ComputeDiff(previous, current Document, contextLinesCount int) ([]Diff, error) {
-	if len(previous) == 0 {
-		// All added
-		diffs := make([]Diff, len(current))
-		for i, line := range current {
-			diffs[i] = NewDiff(Line{lineNumber: -1}, line, ADDED)
-		}
-		return diffs, nil
-	}
-	if len(current) == 0 {
-		// All deleted
-		diffs := make([]Diff, len(previous))
-		for i, line := range previous {
-			diffs[i] = NewDiff(line, Line{lineNumber: -1}, DELETED)
-		}
+	if diffs, success := handleSimpleCases(previous, current); success {
 		return diffs, nil
 	}
 
@@ -98,10 +85,6 @@ func (m myersDiffer) ComputeDiff(previous, current Document, contextLinesCount i
 // Find shortest edition, produce a list of traces that led to the result
 func (m myersDiffer) shortestEdition(previous, current Document) ([][]int, error) {
 	maxDepth := max(len(previous), len(current))
-	if maxDepth == 0 {
-		return [][]int{}, nil
-	}
-
 	arr := make([]int, maxDepth*2+1)
 	trace := [][]int{}
 	for depth := 0; depth <= maxDepth; depth++ {

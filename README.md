@@ -1,2 +1,4 @@
 # GitDiff
-Git diff algorithms implementation
+Git diff algorithm implementation
+
+Currently supports Myers, the default git-diff algorithm.
